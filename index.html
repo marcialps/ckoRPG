@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RPG Textual - Aventura</title>
+    <title>RPG Textual - Aventura Épica</title>
     <style>
         body {
-            background: #181818;
-            color: #f8f8f2;
+            background: url('https://www.transparenttextures.com/patterns/old-mathematics.png'), #f5ecd7;
+            color: #2d1b00;
             font-family: 'Consolas', 'Courier New', monospace;
             margin: 0;
             padding: 0;
@@ -17,47 +17,55 @@
             min-height: 100vh;
         }
         #game-container {
-            background: #282a36;
-            border-radius: 8px;
-            box-shadow: 0 0 16px #0008;
+            background: rgba(255, 255, 240, 0.95);
+            border-radius: 12px;
+            box-shadow: 0 0 24px #0006;
             margin-top: 40px;
             padding: 32px;
             width: 100%;
-            max-width: 600px;
+            max-width: 700px;
+            border: 3px solid #bfa76f;
+            border-style: double;
         }
         #output {
-            min-height: 300px;
-            max-height: 400px;
+            min-height: 350px;
+            max-height: 500px;
             overflow-y: auto;
             margin-bottom: 16px;
             white-space: pre-line;
+            font-size: 1.1em;
         }
         #input-form {
             display: flex;
         }
         #command {
             flex: 1;
-            padding: 8px;
+            padding: 10px;
             font-size: 1.1em;
             border-radius: 4px;
-            border: none;
+            border: 1px solid #bfa76f;
             outline: none;
-            background: #44475a;
-            color: #f8f8f2;
+            background: #fffbe6;
+            color: #2d1b00;
         }
         #submit-btn {
             margin-left: 8px;
-            padding: 8px 16px;
+            padding: 10px 18px;
             font-size: 1.1em;
             border-radius: 4px;
-            border: none;
-            background: #50fa7b;
-            color: #282a36;
+            border: 1px solid #bfa76f;
+            background: #e6d3a3;
+            color: #2d1b00;
             cursor: pointer;
             transition: background 0.2s;
         }
         #submit-btn:hover {
-            background: #3be97a;
+            background: #f5ecd7;
+        }
+        #inventario {
+            margin-top: 10px;
+            font-size: 0.98em;
+            color: #6b4e1e;
         }
     </style>
 </head>
@@ -68,24 +76,56 @@
             <input type="text" id="command" placeholder="Digite seu comando..." autofocus />
             <button type="submit" id="submit-btn">Enviar</button>
         </form>
+        <div id="inventario"></div>
     </div>
+    <audio id="audio-vitoria" src="https://cdn.pixabay.com/audio/2022/07/26/audio_124bfae3e2.mp3"></audio>
+    <audio id="audio-gameover" src="https://cdn.pixabay.com/audio/2022/07/26/audio_124bfae3e2.mp3"></audio>
+    <audio id="audio-item" src="https://cdn.pixabay.com/audio/2022/03/15/audio_115b9b7b7e.mp3"></audio>
+    <audio id="audio-passos" src="https://cdn.pixabay.com/audio/2022/03/15/audio_115b9b7b7e.mp3"></audio>
     <script>
         const output = document.getElementById('output');
         const form = document.getElementById('input-form');
         const commandInput = document.getElementById('command');
+        const inventarioDiv = document.getElementById('inventario');
+        const audioVitoria = document.getElementById('audio-vitoria');
+        const audioGameover = document.getElementById('audio-gameover');
+        const audioItem = document.getElementById('audio-item');
+        const audioPassos = document.getElementById('audio-passos');
 
         // Estado do jogo
         let gameState = {
             local: 'inicio',
             inventario: [],
             vivo: true,
-            venceu: false
+            venceu: false,
+            ajudante: false,
+            monstroDerrotado: false,
+            temTocha: false,
+            temEspada: false,
+            temMapa: false,
+            encontrouTesouro: false
         };
+
+        function atualizarInventario() {
+            if (gameState.inventario.length > 0) {
+                inventarioDiv.textContent = 'Inventário: ' + gameState.inventario.join(', ');
+            } else {
+                inventarioDiv.textContent = 'Inventário vazio.';
+            }
+        }
 
         // Função para mostrar texto no output
         function mostrar(texto) {
             output.innerHTML += texto + '\n';
             output.scrollTop = output.scrollHeight;
+        }
+
+        // Função para tocar sons
+        function tocarSom(tipo) {
+            if (tipo === 'vitoria') audioVitoria.play();
+            if (tipo === 'gameover') audioGameover.play();
+            if (tipo === 'item') audioItem.play();
+            if (tipo === 'passos') audioPassos.play();
         }
 
         // Função para processar comandos
@@ -95,75 +135,215 @@
                 mostrar('\nA aventura terminou. Recarregue a página para jogar novamente.');
                 return;
             }
+            // Comandos globais
+            if (comando === 'inventario' || comando === 'inventário') {
+                atualizarInventario();
+                return;
+            }
+            if (comando === 'ajuda') {
+                mostrar('Comandos úteis: olhar, examinar, pegar [item], usar [item], ir para [direção/lugar], conversar, atacar, inventário, ajuda, voltar, avançar, explorar, acender tocha.');
+                return;
+            }
             switch (gameState.local) {
                 case 'inicio':
                     if (comando.includes('olhar') || comando.includes('examinar')) {
-                        mostrar('Você está em uma clareira misteriosa. Há uma trilha ao norte e uma caverna ao leste.');
+                        mostrar('Você está em uma clareira misteriosa. Há uma trilha ao norte, uma caverna ao leste e uma cabana ao sul. O sol está se pondo.');
                     } else if (comando.includes('norte')) {
                         gameState.local = 'trilha';
-                        mostrar('Você segue pela trilha e encontra um velho portão enferrujado.');
+                        mostrar('Você segue pela trilha e encontra um velho portão enferrujado. O vento sopra forte.');
+                        tocarSom('passos');
                     } else if (comando.includes('leste') || comando.includes('caverna')) {
                         gameState.local = 'caverna';
-                        mostrar('Você entra na caverna escura. Ouve um som estranho vindo do fundo.');
+                        mostrar('Você entra na caverna escura. O ar é frio e úmido.');
+                        tocarSom('passos');
+                    } else if (comando.includes('sul') || comando.includes('cabana')) {
+                        gameState.local = 'cabana';
+                        mostrar('Você se aproxima de uma cabana antiga. Uma luz fraca brilha na janela.');
+                        tocarSom('passos');
+                    } else if (comando.includes('explorar')) {
+                        mostrar('Você encontra pegadas misteriosas e um mapa antigo parcialmente rasgado.');
+                        if (!gameState.temMapa) {
+                            gameState.inventario.push('mapa antigo');
+                            gameState.temMapa = true;
+                            tocarSom('item');
+                        }
                     } else {
-                        mostrar('Comando não reconhecido. Tente: olhar, ir para o norte, ir para o leste.');
+                        mostrar('Comando não reconhecido. Tente: olhar, ir para o norte, leste, sul, explorar.');
                     }
                     break;
                 case 'trilha':
                     if (comando.includes('olhar')) {
-                        mostrar('O portão parece trancado, mas há uma chave caída no chão.');
+                        mostrar('O portão parece trancado, mas há uma chave caída no chão e marcas de garras na madeira.');
                     } else if (comando.includes('pegar chave')) {
                         if (!gameState.inventario.includes('chave')) {
                             gameState.inventario.push('chave');
                             mostrar('Você pegou a chave!');
+                            tocarSom('item');
                         } else {
                             mostrar('Você já pegou a chave.');
                         }
                     } else if (comando.includes('abrir portao') || comando.includes('abrir portão')) {
                         if (gameState.inventario.includes('chave')) {
-                            gameState.local = 'final';
-                            gameState.venceu = true;
-                            mostrar('Você abre o portão com a chave e encontra um tesouro! Parabéns, você venceu!');
+                            gameState.local = 'jardim';
+                            mostrar('Você abre o portão com a chave e entra em um jardim sombrio, repleto de estátuas antigas.');
+                            tocarSom('passos');
                         } else {
                             mostrar('O portão está trancado. Talvez haja uma chave por perto.');
                         }
                     } else if (comando.includes('voltar')) {
                         gameState.local = 'inicio';
                         mostrar('Você retorna à clareira.');
+                        tocarSom('passos');
+                    } else if (comando.includes('explorar')) {
+                        mostrar('Você encontra uma tocha caída.');
+                        if (!gameState.temTocha) {
+                            gameState.inventario.push('tocha');
+                            gameState.temTocha = true;
+                            tocarSom('item');
+                        }
                     } else {
-                        mostrar('Comando não reconhecido. Tente: olhar, pegar chave, abrir portão, voltar.');
+                        mostrar('Comando não reconhecido. Tente: olhar, pegar chave, abrir portão, voltar, explorar.');
                     }
                     break;
                 case 'caverna':
                     if (comando.includes('olhar')) {
-                        mostrar('A caverna é úmida e escura. Você vê algo brilhando no chão.');
-                    } else if (comando.includes('pegar') && comando.includes('brilhando')) {
+                        mostrar('A caverna é úmida e escura. Você vê algo brilhando no chão e ouve um rosnado distante.');
+                    } else if ((comando.includes('pegar') && comando.includes('brilhando')) || comando.includes('pegar pedra')) {
                         if (!gameState.inventario.includes('pedra brilhante')) {
                             gameState.inventario.push('pedra brilhante');
-                            mostrar('Você pegou a pedra brilhante!');
+                            mostrar('Você pegou a pedra brilhante! Ela emite um leve calor.');
+                            tocarSom('item');
                         } else {
                             mostrar('Você já pegou a pedra brilhante.');
+                        }
+                    } else if (comando.includes('acender tocha') || comando.includes('usar tocha')) {
+                        if (gameState.temTocha) {
+                            mostrar('Você acende a tocha e ilumina a caverna. Agora pode ver um túnel ao fundo.');
+                        } else {
+                            mostrar('Você não tem uma tocha.');
+                        }
+                    } else if (comando.includes('avançar') || comando.includes('fundo') || comando.includes('túnel')) {
+                        if (gameState.temTocha) {
+                            if (!gameState.monstroDerrotado) {
+                                mostrar('Um monstro aparece! Você pode tentar lutar ou fugir.');
+                                gameState.local = 'monstro';
+                            } else {
+                                mostrar('O túnel está livre. Você pode seguir em frente.');
+                            }
+                        } else {
+                            mostrar('Está escuro demais para avançar. Talvez precise de uma tocha.');
                         }
                     } else if (comando.includes('voltar')) {
                         gameState.local = 'inicio';
                         mostrar('Você retorna à clareira.');
-                    } else if (comando.includes('avançar') || comando.includes('fundo')) {
-                        mostrar('Um monstro aparece e te ataca! Você não estava preparado...\nGAME OVER');
-                        gameState.vivo = false;
+                        tocarSom('passos');
                     } else {
-                        mostrar('Comando não reconhecido. Tente: olhar, pegar o que está brilhando, voltar, avançar.');
+                        mostrar('Comando não reconhecido. Tente: olhar, pegar pedra, acender tocha, avançar, voltar.');
                     }
                     break;
-                case 'final':
+                case 'cabana':
+                    if (comando.includes('olhar')) {
+                        mostrar('A cabana é pequena, cheira a ervas. Uma senhora idosa está sentada perto do fogo.');
+                    } else if (comando.includes('conversar') || comando.includes('falar')) {
+                        if (!gameState.ajudante) {
+                            mostrar('A senhora sorri e lhe entrega uma espada antiga. "Use com sabedoria!"');
+                            gameState.inventario.push('espada');
+                            gameState.temEspada = true;
+                            gameState.ajudante = true;
+                            tocarSom('item');
+                        } else {
+                            mostrar('A senhora diz: "Boa sorte, jovem aventureiro!"');
+                        }
+                    } else if (comando.includes('explorar')) {
+                        mostrar('Você encontra um frasco de poção vermelha.');
+                        if (!gameState.inventario.includes('poção de cura')) {
+                            gameState.inventario.push('poção de cura');
+                            tocarSom('item');
+                        }
+                    } else if (comando.includes('pegar poção')) {
+                        if (!gameState.inventario.includes('poção de cura')) {
+                            gameState.inventario.push('poção de cura');
+                            mostrar('Você pegou a poção de cura!');
+                            tocarSom('item');
+                        } else {
+                            mostrar('Você já pegou a poção de cura.');
+                        }
+                    } else if (comando.includes('voltar')) {
+                        gameState.local = 'inicio';
+                        mostrar('Você retorna à clareira.');
+                        tocarSom('passos');
+                    } else {
+                        mostrar('Comando não reconhecido. Tente: olhar, conversar, explorar, pegar poção, voltar.');
+                    }
+                    break;
+                case 'monstro':
+                    if (comando.includes('atacar')) {
+                        if (gameState.temEspada) {
+                            mostrar('Você enfrenta o monstro com sua espada e o derrota! O caminho está livre.');
+                            gameState.monstroDerrotado = true;
+                            gameState.local = 'caverna';
+                            tocarSom('vitoria');
+                        } else {
+                            mostrar('Você tenta lutar, mas está desarmado. O monstro é forte demais...\nGAME OVER');
+                            gameState.vivo = false;
+                            tocarSom('gameover');
+                        }
+                    } else if (comando.includes('fugir') || comando.includes('correr')) {
+                        mostrar('Você foge de volta para a entrada da caverna.');
+                        gameState.local = 'caverna';
+                        tocarSom('passos');
+                    } else if (comando.includes('usar poção')) {
+                        if (gameState.inventario.includes('poção de cura')) {
+                            mostrar('Você bebe a poção de cura e sente suas forças renovadas.');
+                            // Poção é consumida
+                            gameState.inventario = gameState.inventario.filter(item => item !== 'poção de cura');
+                            atualizarInventario();
+                        } else {
+                            mostrar('Você não tem poção de cura.');
+                        }
+                    } else {
+                        mostrar('Comando não reconhecido. Tente: atacar, fugir, usar poção.');
+                    }
+                    break;
+                case 'jardim':
+                    if (comando.includes('olhar')) {
+                        mostrar('O jardim é sombrio, com estátuas de guerreiros e animais. Há uma fonte no centro e um portão ao norte.');
+                    } else if (comando.includes('explorar')) {
+                        mostrar('Você encontra uma moeda dourada perto da fonte.');
+                        if (!gameState.inventario.includes('moeda dourada')) {
+                            gameState.inventario.push('moeda dourada');
+                            tocarSom('item');
+                        }
+                    } else if (comando.includes('norte')) {
+                        if (!gameState.encontrouTesouro) {
+                            gameState.local = 'tesouro';
+                            mostrar('Você atravessa o portão e encontra uma sala secreta cheia de tesouros! Parabéns, você venceu a aventura!');
+                            gameState.venceu = true;
+                            gameState.encontrouTesouro = true;
+                            tocarSom('vitoria');
+                        } else {
+                            mostrar('Você já encontrou o tesouro.');
+                        }
+                    } else if (comando.includes('voltar')) {
+                        gameState.local = 'trilha';
+                        mostrar('Você retorna à trilha.');
+                        tocarSom('passos');
+                    } else {
+                        mostrar('Comando não reconhecido. Tente: olhar, explorar, ir para o norte, voltar.');
+                    }
+                    break;
+                case 'tesouro':
                     mostrar('A aventura terminou. Recarregue a página para jogar novamente.');
                     break;
                 default:
                     mostrar('Você está perdido no tempo e espaço.');
             }
+            atualizarInventario();
         }
 
         // Mensagem inicial
-        mostrar('Bem-vindo à aventura!\nVocê está em uma clareira misteriosa.\nComandos sugeridos: olhar, ir para o norte, ir para o leste.');
+        mostrar('Bem-vindo à aventura épica!\nVocê está em uma clareira misteriosa.\nComandos sugeridos: olhar, ir para o norte, leste, sul, explorar, ajuda.');
+        atualizarInventario();
 
         // Evento de envio do formulário
         form.addEventListener('submit', function(e) {
