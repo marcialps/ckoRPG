@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RPG Textual - Aventura</title>
+    <style>
+        body {
+            background: #181818;
+            color: #f8f8f2;
+            font-family: 'Consolas', 'Courier New', monospace;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+        #game-container {
+            background: #282a36;
+            border-radius: 8px;
+            box-shadow: 0 0 16px #0008;
+            margin-top: 40px;
+            padding: 32px;
+            width: 100%;
+            max-width: 600px;
+        }
+        #output {
+            min-height: 300px;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-bottom: 16px;
+            white-space: pre-line;
+        }
+        #input-form {
+            display: flex;
+        }
+        #command {
+            flex: 1;
+            padding: 8px;
+            font-size: 1.1em;
+            border-radius: 4px;
+            border: none;
+            outline: none;
+            background: #44475a;
+            color: #f8f8f2;
+        }
+        #submit-btn {
+            margin-left: 8px;
+            padding: 8px 16px;
+            font-size: 1.1em;
+            border-radius: 4px;
+            border: none;
+            background: #50fa7b;
+            color: #282a36;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        #submit-btn:hover {
+            background: #3be97a;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="output"></div>
+        <form id="input-form" autocomplete="off">
+            <input type="text" id="command" placeholder="Digite seu comando..." autofocus />
+            <button type="submit" id="submit-btn">Enviar</button>
+        </form>
+    </div>
+    <script>
+        const output = document.getElementById('output');
+        const form = document.getElementById('input-form');
+        const commandInput = document.getElementById('command');
+
+        // Estado do jogo
+        let gameState = {
+            local: 'inicio',
+            inventario: [],
+            vivo: true,
+            venceu: false
+        };
+
+        // Função para mostrar texto no output
+        function mostrar(texto) {
+            output.innerHTML += texto + '\n';
+            output.scrollTop = output.scrollHeight;
+        }
+
+        // Função para processar comandos
+        function processarComando(comando) {
+            comando = comando.trim().toLowerCase();
+            if (!gameState.vivo || gameState.venceu) {
+                mostrar('\nA aventura terminou. Recarregue a página para jogar novamente.');
+                return;
+            }
+            switch (gameState.local) {
+                case 'inicio':
+                    if (comando.includes('olhar') || comando.includes('examinar')) {
+                        mostrar('Você está em uma clareira misteriosa. Há uma trilha ao norte e uma caverna ao leste.');
+                    } else if (comando.includes('norte')) {
+                        gameState.local = 'trilha';
+                        mostrar('Você segue pela trilha e encontra um velho portão enferrujado.');
+                    } else if (comando.includes('leste') || comando.includes('caverna')) {
+                        gameState.local = 'caverna';
+                        mostrar('Você entra na caverna escura. Ouve um som estranho vindo do fundo.');
+                    } else {
+                        mostrar('Comando não reconhecido. Tente: olhar, ir para o norte, ir para o leste.');
+                    }
+                    break;
+                case 'trilha':
+                    if (comando.includes('olhar')) {
+                        mostrar('O portão parece trancado, mas há uma chave caída no chão.');
+                    } else if (comando.includes('pegar chave')) {
+                        if (!gameState.inventario.includes('chave')) {
+                            gameState.inventario.push('chave');
+                            mostrar('Você pegou a chave!');
+                        } else {
+                            mostrar('Você já pegou a chave.');
+                        }
+                    } else if (comando.includes('abrir portao') || comando.includes('abrir portão')) {
+                        if (gameState.inventario.includes('chave')) {
+                            gameState.local = 'final';
+                            gameState.venceu = true;
+                            mostrar('Você abre o portão com a chave e encontra um tesouro! Parabéns, você venceu!');
+                        } else {
+                            mostrar('O portão está trancado. Talvez haja uma chave por perto.');
+                        }
+                    } else if (comando.includes('voltar')) {
+                        gameState.local = 'inicio';
+                        mostrar('Você retorna à clareira.');
+                    } else {
+                        mostrar('Comando não reconhecido. Tente: olhar, pegar chave, abrir portão, voltar.');
+                    }
+                    break;
+                case 'caverna':
+                    if (comando.includes('olhar')) {
+                        mostrar('A caverna é úmida e escura. Você vê algo brilhando no chão.');
+                    } else if (comando.includes('pegar') && comando.includes('brilhando')) {
+                        if (!gameState.inventario.includes('pedra brilhante')) {
+                            gameState.inventario.push('pedra brilhante');
+                            mostrar('Você pegou a pedra brilhante!');
+                        } else {
+                            mostrar('Você já pegou a pedra brilhante.');
+                        }
+                    } else if (comando.includes('voltar')) {
+                        gameState.local = 'inicio';
+                        mostrar('Você retorna à clareira.');
+                    } else if (comando.includes('avançar') || comando.includes('fundo')) {
+                        mostrar('Um monstro aparece e te ataca! Você não estava preparado...\nGAME OVER');
+                        gameState.vivo = false;
+                    } else {
+                        mostrar('Comando não reconhecido. Tente: olhar, pegar o que está brilhando, voltar, avançar.');
+                    }
+                    break;
+                case 'final':
+                    mostrar('A aventura terminou. Recarregue a página para jogar novamente.');
+                    break;
+                default:
+                    mostrar('Você está perdido no tempo e espaço.');
+            }
+        }
+
+        // Mensagem inicial
+        mostrar('Bem-vindo à aventura!\nVocê está em uma clareira misteriosa.\nComandos sugeridos: olhar, ir para o norte, ir para o leste.');
+
+        // Evento de envio do formulário
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const comando = commandInput.value;
+            if (comando) {
+                mostrar('> ' + comando);
+                processarComando(comando);
+                commandInput.value = '';
+            }
+        });
+    </script>
+</body>
+</html>
